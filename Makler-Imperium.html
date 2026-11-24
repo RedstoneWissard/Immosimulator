@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Makler-Imperium</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700&display=swap">
+<style>
+:root{color-scheme:light dark;--bg:#edf0f3;--fg:#16202e;--cd:#fbfcfd;--mu:#566274;--ln:#c9d1dc;--gr:rgba(31,79,163,.06);--ac:#1f4fa3;--on:#fff;--bd:#c0392b;--gd:#1c7c4d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1621;--fg:#e6ebf2;--cd:#152130;--mu:#93a1b5;--ln:#2b3b50;--gr:rgba(106,166,255,.06);--ac:#6aa6ff;--on:#06121f;--bd:#ff8a7a;--gd:#4fd08a}}
+:root[data-theme="dark"]{--bg:#0e1621;--fg:#e6ebf2;--cd:#152130;--mu:#93a1b5;--ln:#2b3b50;--gr:rgba(106,166,255,.06);--ac:#6aa6ff;--on:#06121f;--bd:#ff8a7a;--gd:#4fd08a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background-color:var(--bg);background-image:linear-gradient(var(--gr) 1px,transparent 1px),linear-gradient(90deg,var(--gr) 1px,transparent 1px);background-size:28px 28px;color:var(--fg);font:15px/1.45 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--cd);z-index:10}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:11;background:var(--cd);border-bottom:2px solid var(--fg);padding:10px 14px}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:960px;margin:0 auto}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px 14px;flex:1}
+.st .w b{font-size:22px;line-height:1.1}
+small,.t{color:var(--mu);font-size:12px}small{display:block}
+main{max-width:960px;margin:0 auto;padding:4px 14px 80px}
+nav{display:flex;gap:4px;overflow-x:auto;padding:8px 0 4px}
+button{font:inherit;color:var(--fg);background:var(--cd);border:1px solid var(--fg);border-radius:4px;padding:7px 11px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+button.p{background:var(--ac);border-color:var(--ac);color:var(--on);font-weight:700}
+button:disabled{opacity:.45;cursor:not-allowed}
+nav button{white-space:nowrap;border:0;border-bottom:3px solid transparent;border-radius:0;background:none}
+nav button.on{border-bottom-color:var(--ac);font-weight:700}
+.c{background:var(--cd);border:1px solid var(--ln);border-left:6px solid var(--vc,var(--ln));border-radius:4px;padding:12px 14px;margin:0 0 10px}
+.g{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.g .c{margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.up{color:var(--gd)}.dn{color:var(--bd)}
+.sc{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--ln)}
+.lg{padding:5px 0;border-bottom:1px solid var(--ln);font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:4px;z-index:20;max-width:90vw}
+.fc{width:100%;max-width:240px;box-sizing:border-box;margin:0 auto 8px;padding:10px 12px;border-radius:12px;color:#fff;background:linear-gradient(160deg,var(--t),#17202e 85%);box-shadow:0 0 0 2px var(--t),0 6px 16px rgba(0,0,0,.35)}.fh{display:flex;justify-content:space-between;align-items:flex-start}.fh b{font-size:34px;line-height:1}.fh small{align-self:center;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t)}.fi{display:block;width:100%;height:56px;fill:rgba(255,255,255,.85)}.fn{font-weight:700;text-align:center;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;text-align:center;margin-top:6px}.fg b{display:block;font-size:17px}.fg small{display:block;color:rgba(255,255,255,.7);font-size:9px;letter-spacing:.02em}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header id="h"></header>
+<main id="m"></main>
+<div class="toast" id="ty" hidden></div>
+<script>
+const MN=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"],
+COL=["#c98a00","#2f7fd0","#7b5cd6","#2f9a8f"],
+TY=[["Wohnung",1,40,110],["Reihenhaus",1.1,90,150],["Altbau",.9,60,160],["Loft",1.2,70,130]],
+RN=[["Schönheit",200,12,1],["Modernisierung",480,28,2],["Luxus",1000,45,3]],
+RV=[["Immo Müller",.5,0],["Schmidt & Söhne",.4,1],["Kaiser Immobilien",.7,2]],
+eur=n=>Math.round(n).toLocaleString("de-DE",{style:"currency",currency:"EUR",maximumFractionDigits:0}),
+fm=n=>(n*100).toFixed(2).replace(".",",")+" %",
+rg=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rg(a,b+1)),
+$=i=>document.getElementById(i);
+let S,tab="a",id=0,sel=0;
+const val=p=>p.a*S.V[p.v].p*p.f*(p.m||1)*(.5+.5*p.c/100),
+rent=p=>val(p)*.0035,
+nm=p=>p.ty+" in "+S.V[p.v].n,
+own=i=>S.P.find(p=>p.id==i),
+wealth=r=>r.c+r.pr.reduce((s,p)=>s+val(p),0),
+nw=()=>S.cash-S.debt+S.P.reduce((s,p)=>s+val(p),0)+S.L.reduce((s,p)=>s+(p.res||0),0),
+date=()=>MN[S.m%12]+" "+(2027+Math.floor(S.m/12)),
+rank=()=>[{n:"Du",w:nw(),o:S.P.length},...S.R.map(r=>({n:r.n,w:wealth(r),o:r.pr.length}))].sort((a,b)=>b.w-a.w);
+
+function log(t){S.log.unshift(date()+": "+t);S.log.length=Math.min(S.log.length,40)}
+function msg(t){const e=$("ty");e.textContent=t;e.hidden=false;clearTimeout(msg.t);msg.t=setTimeout(()=>e.hidden=true,2600)}
+function go(x){tab=x;render()}
+function gA(){const a=gen();a.au=1;a.exp=S.m+1;a.ask=Math.round(val(a)*rg(.5,.75)/1000)*1000;a.bid=0;a.res=0;return a}
+function neg(i,f){if(S.over)return;const p=S.L.find(x=>x.id==i),t=p.tr||0;
+ if(t>=2)return msg("Der Verkäufer verhandelt nicht weiter.");
+ p.tr=t+1;const b=Math.round(p.ask*f/1000)*1000,m=(p.min||p.ask*.9)*(1-S.rep*.0005);
+ if(b>=m){p.ask=b;p.tr=2;S.rep=Math.min(100,S.rep+2);log("Verhandelt: "+nm(p)+" jetzt für "+eur(b)+".");msg("Einigung bei "+eur(b))}
+ else if(b>=m*.94){p.ask=Math.round(m*1.01/1000)*1000;msg("Gegenangebot des Verkäufers: "+eur(p.ask))}
+ else msg("Der Verkäufer lehnt ab. Noch "+(2-p.tr)+" Versuch(e).");
+ render()}
+function bid(i,f){if(S.over)return;const p=S.L.find(x=>x.id==i),b=Math.round(p.ask*f/1000)*1000,r=b*1.05,d=r-(p.res||0);
+ if(b<=p.bid)return msg("Dein Gebot muss höher sein als dein letztes.");
+ if(S.cash<d)return msg("Nicht genug Bargeld: Gebot plus 5 % Nebenkosten wird reserviert.");
+ S.cash-=d;p.res=r;p.bid=b;render()}
+function sold(p,x){S.cash+=x;S.P=S.P.filter(q=>q!=p);S.O=S.O.filter(o=>o.pid!=p.id);
+ if(x>=p.inv)S.rep=Math.min(100,S.rep+3);log("Verkauft: "+nm(p)+" für "+eur(x)+" ("+(x>=p.inv?"+":"−")+eur(Math.abs(x-p.inv))+" Gewinn/Verlust).")}
+function oa(i,a){const p=own(i),o=S.O.find(x=>x.pid==i);if(!o)return;
+ if(a==1)sold(p,o.amt);
+ else if(a==2){const m=Math.round((o.amt+val(p)*p.ls)/2000)*1000;
+  if(Math.random()<.6){sold(p,m);msg("Einigung bei "+eur(m))}else{S.O=S.O.filter(x=>x!=o);msg("Der Käufer ist abgesprungen.")}}
+ else S.O=S.O.filter(x=>x!=o);
+ render()}
+const DX=[[10,10],[210,10],[10,160],[210,160]],PRE=[['Zinnkrug','Krähen','Glocken','Pergament','Kupfer','Lampen','Ratsherren','Pfeffer','Mondschein','Schwalben'],['Möwen','Schilf','Silberwellen','Leuchtturm','Seerosen','Brisen','Ufer','Sonnen','Kiesel','Reiher'],['Raster','Zukunfts','Glas','Park','Quadrat','Neon','Linden','Funk','Licht','Taubenfeld'],['Anker','Lotsen','Kranz','Salz','Tau','Kai','Seemanns','Wind','Lachmöwen','Teer']],SUF=['gasse','weg','hof','steig','allee','ufer','kai','zeile','ring','pfad'],BY={Wohnung:[1950,2005],Reihenhaus:[1962,2015],Altbau:[1880,1915],Loft:[1900,1935]},FL=['EG','1. OG','2. OG','3. OG','4. OG','Dachgeschoss'],FT=[['Balkon',1.04,[0,1,2,3]],['Garten',1.06,[1,2]],['Seeblick',1.12,[1,3]],['Dachterrasse',1.08,[0,2,3]],['Fußbodenheizung',1.03,[0,1,2,3]],['Aufzug',1.03,[1,2,3]],['Tiefgarage',1.04,[2,3]],['Denkmalschutz',1.1,[0]],['Stuckdecken',1.07,[0]],['Kamin',1.05,[1,2]],['Lärmbelastung',.92,[0,3]],['Hinterhof',.96,[0]]];function mkSt(){const u=new Set(),o=[];for(let v=0;v<4;v++){const[x0,y0]=DX[v],n=()=>{let t;do t=PRE[v][ri(0,9)]+SUF[ri(0,9)];while(u.has(t));u.add(t);return t};o.push({v,n:n(),h:1,y:y0+43},{v,n:n(),h:1,y:y0+87},{v,n:n(),h:0,x:x0+60},{v,n:n(),h:0,x:x0+120})}return o}function place(p){const s=S.ST.filter(t=>t.v==p.v)[ri(0,3)],[x0,y0]=DX[p.v],q={st:s.n,no:ri(1,80),by:ri(BY[p.ty][0],BY[p.ty][1]),fl:p.ty=='Reihenhaus'?'Ganzes Haus':FL[ri(0,5)]};if(s.h){q.x=x0+12+rg(0,156);q.y=s.y}else{q.x=s.x;q.y=y0+12+rg(0,106)}const ok=FT.filter(f=>f[2].includes(p.v)),a=ok[ri(0,ok.length-1)],b=ok[ri(0,ok.length-1)],ft=a==b?[a]:[a,b];q.ft=ft.map(f=>f[0]);q.m=ft.reduce((r,f)=>r*f[1],1);return q}function mapSvg(){let s=`<svg viewBox='0 0 400 300' width='100%' role='img' aria-label='Stadtkarte'>`;DX.forEach(([x,y],v)=>{s+=`<rect x='${x}' y='${y}' width='180' height='130' rx='6' style='fill:${COL[v]};fill-opacity:.1;stroke:${COL[v]}'/><text x='${x+5}' y='${y+12}' font-size='10' font-weight='700' style='fill:${COL[v]}'>${S.V[v].n}</text>`});S.ST.forEach(t=>{const[x,y]=DX[t.v];s+=t.h?`<line x1='${x}' x2='${x+180}' y1='${t.y}' y2='${t.y}' style='stroke:var(--ln);stroke-width:3'/><text x='${x+4}' y='${t.y-3}' font-size='6.5' style='fill:var(--mu)'>${t.n}</text>`:`<line x1='${t.x}' x2='${t.x}' y1='${y}' y2='${y+130}' style='stroke:var(--ln);stroke-width:3'/><text transform='rotate(90 ${t.x+3} ${y+20})' x='${t.x+3}' y='${y+20}' font-size='6.5' style='fill:var(--mu)'>${t.n}</text>`});const mk=(p,f,st,r)=>`<circle cx='${p.x}' cy='${p.y}' r='${r}' style='fill:${f};stroke:${st};stroke-width:${p.id==sel?3:1.5};cursor:pointer' onclick='pick(${p.id})'><title>${p.st} ${p.no}</title></circle>`;S.L.forEach(p=>s+=mk(p,p.au?'var(--bd)':'var(--cd)',p.au?'var(--fg)':COL[p.v],5));S.P.forEach(p=>s+=mk(p,COL[p.v],'var(--fg)',6));S.R.forEach(r=>r.pr.forEach(p=>s+=mk(p,'var(--mu)','var(--cd)',3.5)));return s+'</svg>'}function info(){const o=own(sel),p=S.L.find(x=>x.id==sel)||o||S.R.flatMap(r=>r.pr).find(x=>x.id==sel);if(!p)return `<p class='t'>Klicke auf einen Punkt der Karte, um Details zu sehen.</p>`;const k=p.au?'Auktion':o?'Dein Besitz':S.L.includes(p)?'Angebot':'Konkurrenz',t={Auktion:'u',Angebot:'a','Dein Besitz':'p'}[k];return `<div class='c' style='--vc:${COL[p.v]}'>${fc(p)}<b>${p.st} ${p.no}</b> <span class='t'>${nm(p)}</span><div>${p.ty} von ${p.by}, ${p.fl}, ${p.a} m²</div><div class='t'>${p.ft.join(' · ')}</div><div class='t'>${k}${t?' · '+eur(o?val(p):p.ask):''}</div>${t?`<div class='row'><button class='p' onclick="go('${t}')">Zu ${({u:'Auktionen',a:'Angeboten',p:'Portfolio'})[t]}</button></div>`:''}</div>`}function fc(p){const L=['LAGE','ZUSTAND','FLÄCHE','AUSSTATTUNG','CHARME','RUHE'],RU=[70,85,75,50],HS={Wohnung:`<rect x='14' y='4' width='32' height='38' rx='2'/><path d='M19 9h6v6h-6zm12 0h6v6h-6zm-12 10h6v6h-6zm12 0h6v6h-6z' fill='#1b2535'/>`,Reihenhaus:`<path d='M3 40V22l8-8 8 8v18zM19 40V22l8-8 8 8v18zM35 40V22l8-8 8 8v18z'/>`,Altbau:`<path d='M10 42V20L30 5l20 15v22z'/><rect x='25' y='24' width='10' height='18' fill='#1b2535'/>`,Loft:`<path d='M6 40V14l8 6V12l8 8V10l8 10V8l8 10V40z'/>`},o=own(p.id),kn=o||p.rev,zu=kn?p.c:Math.round(p.c/20)*20,st=[Math.min(99,Math.round(S.V[p.v].p/6000*59+40)),Math.min(99,Math.round(zu)),Math.min(99,Math.round(p.a*.6)),Math.min(99,Math.round(p.m*75)),Math.max(30,Math.min(99,Math.round(99-(p.by-1880)/140*60))),Math.max(20,Math.min(99,RU[p.v]+(p.ft.includes('Lärmbelastung')?-25:0)+(p.ft.includes('Hinterhof')?10:0)))],ov=Math.round(st.reduce((a,b)=>a+b,0)/6),T=ov>=85?['Diamant','#58d6ff']:ov>=75?['Gold','#e0b13a']:ov>=65?['Silber','#9aa6b6']:['Bronze','#b5764a'];return `<div class='fc' style='--t:${T[1]}'><div class='fh'><b>${ov}</b><small>${T[0]}</small></div><svg viewBox='0 0 60 44' class='fi'>${HS[p.ty]}</svg><div class='fn'>${p.st} ${p.no}</div><div class='fg'>${st.map((v,i)=>`<div><b>${v}</b><small>${L[i]}</small></div>`).join('')}</div></div>`}function pick(i){sel=i;render()}function gen(){const t=TY[ri(0,3)],p={id:++id,v:ri(0,3),ty:t[0],f:t[1],a:ri(t[2],t[3]),c:ri(20,90),exp:S.m+3,rev:0,rn:0,ls:0};Object.assign(p,place(p));p.ask=Math.round(val(p)*rg(.82,1.22)/1000)*1000;p.min=Math.round(p.ask*rg(.84,.97));p.tr=0;return p}
+function init(){
+ S={m:0,cash:150000,debt:0,rate:.04,heat:1,over:0,
+  V:[["Altstadt",4200],["Seeviertel",5600],["Neustadt",3300],["Hafen",2400]].map(([n,p])=>({n,p,t:.002})),
+  L:[],P:[],O:[],rep:0,ST:mkSt(),R:RV.map(([n,a,s])=>({n,a,s,c:150000,pr:[]})),H:[150000],log:[]};
+ log("Willkommen! Du startest mit 150.000 €. Nach 60 Monaten zählt das größte Vermögen.");
+ for(let i=0;i<7;i++)S.L.push(gen());S.L.push(gA())}
+
+function buy(i){if(S.over)return;const p=S.L.find(x=>x.id==i),c=p.ask*1.05;
+ if(S.cash<c)return msg("Nicht genug Bargeld (Preis plus 5 % Nebenkosten). Nimm einen Kredit auf.");
+ S.cash-=c;S.L=S.L.filter(x=>x!=p);p.buy=p.ask;p.inv=c;p.b=S.m;S.P.push(p);log("Gekauft: "+nm(p)+" für "+eur(p.ask)+".");render()}
+function gut(i){const p=S.L.find(x=>x.id==i);if(S.cash<400)return msg("Nicht genug Bargeld.");S.cash-=400;p.rev=1;render()}
+function reno(i,k){const p=own(i),r=RN[k],c=r[1]*p.a;if(S.cash<c)return msg("Nicht genug Bargeld für die Renovierung.");
+ S.cash-=c;p.inv+=c;p.rn=r[3];p.g=r[2];p.cost=c;log("Renovierung gestartet: "+nm(p)+" ("+r[0]+", "+r[3]+" Mon.).");render()}
+function sell(i,f){own(i).ls=f;if(!f)S.O=S.O.filter(o=>o.pid!=i);render()}
+function loan(d){if(d>0){if(S.debt+d>400000)return msg("Kreditlimit erreicht: 400.000 €.");S.debt+=d;S.cash+=d}
+ else{const x=Math.min(-d,S.debt,S.cash);S.debt-=x;S.cash-=x}render()}
+
+function event(){const e=ri(0,5),v=S.V[ri(0,3)];
+ if(e==0){S.rate=Math.max(.01,S.rate-.005);log("📉 Leitzins gesenkt: Kredite werden günstiger.")}
+ else if(e==1){S.rate=Math.min(.09,S.rate+.0075);log("📈 Leitzins steigt: Der Markt kühlt ab.")}
+ else if(e==2){v.p*=1.07;v.t+=.004;log("🚇 Neue U-Bahn in "+v.n+": Die Preise steigen.")}
+ else if(e==3){S.V.forEach(x=>x.p*=.92);log("💥 Die Preisblase platzt: alle Viertel −8 %.")}
+ else if(e==4){v.p*=.95;log("🏗️ Lärmproteste in "+v.n+": Die Preise sinken.")}
+ else{S.V.forEach(x=>x.t+=.002);log("🚀 Wirtschaftsboom: Die Nachfrage zieht an.")}}
+
+function finish(t){S.over=1;const pos=rank().findIndex(x=>x.n=="Du")+1;log("🏁 "+t+" Spielende, Platz "+pos+" von 4.")}
+
+function tick(){if(S.over)return;S.m++;
+ S.V.forEach(v=>{v.t+=(.002-v.t)*.15+rg(-.002,.002);v.p*=1+v.t+rg(-.008,.008)});
+ S.heat=Math.max(.5,Math.min(1.5,1.2-(S.rate-.04)*9+rg(-.1,.1)));
+ if(Math.random()<.14)event();
+ let rt=0,mt=0;
+ S.P.forEach(p=>{
+  if(p.rn){if(--p.rn==0){p.c=Math.min(100,p.c+p.g);
+   if(Math.random()<.2){const x=Math.round(p.cost*.15);S.cash-=x;p.inv+=x;log("Bauverzug bei "+nm(p)+": Mehrkosten "+eur(x)+".")}
+   else log("Renovierung fertig: "+nm(p)+".")}}
+  else rt+=rent(p);
+  mt+=val(p)*.0004});
+ const pv=Math.round(rg(1500,4500)*S.heat*(1+S.rep/200)),it=S.debt*(S.rate+.01)/12;
+ S.cash+=pv+rt-mt-it;
+ log("Bilanz: Provisionen "+eur(pv)+", Mieten "+eur(rt)+", Kosten −"+eur(mt+it)+".");
+ if(S.cash<0){S.debt-=S.cash;S.cash=0;log("⚠️ Dispo: Die Bank gleicht dein Minus mit einem Kredit aus.")}
+ S.O=S.O.filter(o=>o.exp>S.m||(log("Ein Kaufangebot ist verfallen."),false));
+ S.P.forEach(p=>{if(!p.ls||p.rn||S.O.some(o=>o.pid==p.id))return;const r=p.ls,pr=Math.min(.9,Math.max(.02,.55*S.heat*Math.exp(-6*(r-.95))));
+  if(Math.random()<pr){const a=Math.round(val(p)*r*rg(.86,1)/1000)*1000;S.O.push({pid:p.id,amt:a,exp:S.m+1});log("📩 Kaufangebot für "+nm(p)+": "+eur(a)+". Antworte im Portfolio.")}});
+ S.L.filter(p=>p.au&&p.exp<=S.m).forEach(p=>{let w={b:p.ask-1};
+  S.R.forEach(r=>{if(Math.random()<.7){const b=Math.round(val(p)*rg(.72,1)*(r.s==2?1.08:r.s==0?.92:1)/1000)*1000;if(b>=p.ask&&b>w.b&&b*1.05<=r.c+150000)w={b,r}}});
+  S.L=S.L.filter(x=>x!=p);
+  if(p.bid>=p.ask&&p.bid>w.b){p.au=0;p.buy=p.bid;p.inv=p.res;p.b=S.m;S.P.push(p);S.rep=Math.min(100,S.rep+4);log("🔨 Auktion gewonnen: "+nm(p)+" für "+eur(p.bid)+".")}
+  else{S.cash+=p.res||0;if(w.r){w.r.c-=w.b*1.05;p.au=0;p.b=S.m;w.r.pr.push(p);log("🔨 "+w.r.n+" ersteigert "+nm(p)+" für "+eur(w.b)+".")}else log("🔨 Auktion ohne Zuschlag: "+nm(p)+".")}});
+ S.L=S.L.filter(p=>p.exp>S.m);
+ for(let i=ri(2,4);i>0;i--)S.L.push(gen());
+ if(Math.random()<.5)S.L.push(gA());
+ S.R.forEach(r=>{
+  r.pr.forEach(p=>r.c+=rent(p));r.c+=rg(1500,4500)*S.heat;
+  r.pr=r.pr.filter(p=>{if(S.m-p.b>ri(5,14)&&Math.random()<.4){r.c+=val(p)*rg(.93,1.05);return false}return true});
+  if(r.c<0)r.c+=r.c*(S.rate+.01)/12;
+  if(Math.random()<r.a){
+   const o=S.L.filter(p=>!p.au&&p.ask*1.05<=r.c+150000).sort((x,y)=>r.s==0?val(y)/y.ask-val(x)/x.ask:r.s==1?(y.v==1)-(x.v==1)||y.ask-x.ask:Math.random()-.5)[0];
+   if(o){r.c-=o.ask*1.05;o.b=S.m;r.pr.push(o);S.L=S.L.filter(x=>x!=o);log("🏢 "+r.n+" schnappt sich "+nm(o)+" für "+eur(o.ask)+".")}}});
+ S.H.push(nw());
+ if(nw()<0)finish("Insolvenz!");else if(S.m>=60)finish("");
+ render()}
+
+function spark(){const h=S.H,mx=Math.max(...h),mn=Math.min(...h);
+ return '<svg viewBox="0 0 300 60" preserveAspectRatio="none" width="100%" height="70" role="img" aria-label="Vermögensverlauf"><polyline fill="none" stroke="var(--ac)" stroke-width="2" vector-effect="non-scaling-stroke" points="'
+ +h.map((v,i)=>(i/Math.max(1,h.length-1)*300)+","+(58-(v-mn)/(mx-mn||1)*54)).join(" ")+'"/></svg>'}
+
+function render(){
+ const w=nw(),k=rank(),pos=k.findIndex(x=>x.n=="Du")+1;
+ $("h").innerHTML=`<div class="bar"><div class="st">
+ <div><small>${date()}</small><b>Monat ${S.m} von 60</b></div>
+ <div><small>Bargeld</small><b>${eur(S.cash)}</b></div>
+ <div><small>Schulden</small><b class="dn">${eur(S.debt)}</b></div>
+ <div class="w"><small>Vermögen, Platz ${pos}</small><b>${eur(w)}</b></div>
+ <div><small>Leitzins</small><b>${fm(S.rate)}</b></div>
+ <div><small>Ruf</small><b>${S.rep}/100</b></div></div>
+ <button class="p" onclick="tick()" ${S.over?"disabled":""}>Nächster Monat</button></div>`;
+ const T=[["a","Angebote ("+S.L.filter(p=>!p.au).length+")"],["u","Auktionen ("+S.L.filter(p=>p.au).length+")"],["p","Portfolio ("+S.P.length+")"],["c","Karte"],["m","Markt"],["k","Konkurrenz"],["l","Verlauf"]];
+ let h=`<nav>${T.map(([x,l])=>`<button class="${tab==x?"on":""}" onclick="go('${x}')">${l}</button>`).join("")}</nav>`;
+ if(S.over)h+=`<div class="c"><b>Spielende!</b> Du belegst Platz ${pos} von 4 mit ${eur(w)}. <button class="p" onclick="init();render()">Neues Spiel</button></div>`;
+
+ if(tab=="a")h+=`<div class="g">${S.L.filter(p=>!p.au).map(p=>{const v=val(p),d=(v/p.ask-1)*100,tr=p.tr||0;
+  return `<div class="c" style="--vc:${COL[p.v]}">${fc(p)}<b>${nm(p)}</b>
+  <div class="t">${p.st} ${p.no} · ${p.by}, ${p.fl}</div><div class='t'>${p.a} m², noch ${p.exp-S.m} Mon. im Angebot · ${p.ft.join(' · ')}</div>
+  <div>Preis <b>${eur(p.ask)}</b> <span class="t">(${eur(p.ask/p.a)} pro m²)</span></div>
+  <div class="t">${p.rev?"Zustand "+p.c+"/100, Wert "+eur(v):"Zustand ca. "+Math.round(p.c/20)*20+"/100, Wert unbekannt"}</div>
+  ${p.rev?`<div class="${d>=0?"up":"dn"}">${d>=0?"Unter":"Über"} Marktwert: ${Math.abs(d).toFixed(0)} %</div>`:""}
+  <div class="row"><button onclick="gut(${p.id})">Gutachten (400 €)</button><button class="p" onclick="buy(${p.id})">Kaufen</button></div>${tr<2?`<div class="t">Verhandeln</div><div class="row">${[.95,.9,.85].map(f=>`<button onclick="neg(${p.id},${f})">−${Math.round((1-f)*100)} %</button>`).join("")}</div>`:""}</div>`}).join("")||"<p class='t'>Keine Angebote. Spiele den nächsten Monat.</p>"}</div>
+  <p class="t">Beim Kauf fallen 5 % Grunderwerbsteuer an. Die Preise pro m² findest du im Tab Markt.</p>`;
+
+ if(tab=="u")h+=`<div class="g">${S.L.filter(p=>p.au).map(p=>{const v=val(p);
+  return `<div class="c" style="--vc:${COL[p.v]}">${fc(p)}<b>🔨 ${nm(p)}</b>
+  <div class="t">${p.st} ${p.no} · ${p.by}, ${p.fl} · ${p.ft.join(' · ')}</div><div class='t'>${p.a} m², Zwangsversteigerung, Zuschlag beim nächsten Monatswechsel</div>
+  <div>Mindestgebot <b>${eur(p.ask)}</b></div>
+  <div class="t">${p.rev?"Zustand "+p.c+"/100, Wert "+eur(v):"Zustand ca. "+Math.round(p.c/20)*20+"/100, Wert unbekannt"}</div>
+  <div>${p.bid?"Dein Gebot: <b>"+eur(p.bid)+"</b>":"Noch kein Gebot von dir"}</div>
+  <div class="row"><button onclick="gut(${p.id})">Gutachten (400 €)</button></div>
+  <div class="t">Verdeckt bieten, das Gebot plus 5 % Nebenkosten wird reserviert</div>
+  <div class="row">${[1,1.25,1.5,1.75].map(f=>`<button onclick="bid(${p.id},${f})">${eur(Math.round(p.ask*f/1000)*1000)}</button>`).join("")}</div></div>`}).join("")||"<p class='t'>Aktuell keine Auktion. Neue Termine erscheinen mit dem nächsten Monat.</p>"}</div>
+  <p class="t">Der Höchstbietende gewinnt und zahlt sein Gebot. Verlierst du, bekommst du die Reservierung zurück. Die Konkurrenz bietet mit.</p>`;
+ if(tab=="p")h+=`<div class="c"><b>Bank</b> <span class="t">Kreditzins ${fm(S.rate+.01)} pro Jahr, Limit 400.000 €. Ein Minus auf dem Konto wird automatisch als Kredit verbucht.</span>
+  <div class="row"><button onclick="loan(50000)">Kredit aufnehmen (50.000 €)</button><button onclick="loan(-50000)">Kredit tilgen (50.000 €)</button></div></div>
+  <div class="g">${S.P.map(p=>`<div class="c" style="--vc:${COL[p.v]}">${fc(p)}<b>${nm(p)}</b>
+  <div class="t">${p.st} ${p.no} · ${p.by}, ${p.fl} · ${p.ft.join(' · ')}</div><div class='t'>${p.a} m², Zustand ${Math.round(p.c)}/100, gekauft für ${eur(p.buy)}</div>
+  <div>Wert <b>${eur(val(p))}</b>, Miete ${p.rn?"keine":eur(rent(p))+" pro Monat"}</div>
+  ${p.rn?`<div>🔨 Renovierung läuft, noch ${p.rn} Mon.</div>`
+  :p.ls?`<div>Im Verkauf für ${eur(val(p)*p.ls)} (${Math.round(p.ls*100)} % vom Wert)</div>${(o=>o?`<div><b>📩 Kaufangebot: ${eur(o.amt)}</b></div><div class="row"><button class="p" onclick="oa(${p.id},1)">Annehmen</button><button onclick="oa(${p.id},2)">Gegenangebot zur Mitte</button><button onclick="oa(${p.id},3)">Ablehnen</button></div>`:"")(S.O.find(x=>x.pid==p.id))}<div class="row"><button onclick="sell(${p.id},0)">Verkauf stoppen</button></div>`
+  :`<div class="t">Renovieren</div><div class="row">${RN.map((r,i)=>`<button onclick="reno(${p.id},${i})">${r[0]} ${eur(r[1]*p.a)}</button>`).join("")}</div>
+  <div class="t">Verkaufen zu Prozent vom Marktwert</div><div class="row">${[.95,1,1.1,1.2].map(f=>`<button onclick="sell(${p.id},${f})">${Math.round(f*100)} %</button>`).join("")}</div>`}</div>`).join("")||"<p class='t'>Noch keine Immobilien. Kaufe etwas im Tab Angebote.</p>"}</div>`;
+
+ if(tab=='c')h+=`<div class='c'>${mapSvg()}<p class='t'>Ring: Angebot · rot: Auktion · farbig: Dein Besitz · grau: Konkurrenz. Klicke einen Punkt an.</p></div>${info()}`;if(tab=="m")h+=`<div class="c"><b>${S.heat>1.1?"Verkäufermarkt 🔥":S.heat<.85?"Käufermarkt ❄️":"Ausgeglichener Markt"}</b> <span class="t">Nachfrage-Index ${S.heat.toFixed(2).replace(".",",")}</span>
+  <div class="sc"><table><tr><th>Viertel<th>Preis pro m²<th>Trend pro Monat</tr>${S.V.map((v,i)=>`<tr><td style="border-left:6px solid ${COL[i]}">${v.n}<td>${eur(v.p)}<td class="${v.t>=0?"up":"dn"}">${fm(v.t)}</tr>`).join("")}</table></div>
+  <p class="t">Hohe Zinsen dämpfen die Nachfrage, dann verkaufen sich Objekte langsamer. Renovieren lohnt sich vor allem in teuren Vierteln.</p></div>`;
+
+ if(tab=="k")h+=`<div class="c"><b>Rangliste</b><div class="sc"><table><tr><th>Platz<th>Makler<th>Vermögen<th>Objekte</tr>${k.map((x,i)=>`<tr><td>${i+1}<td>${x.n=="Du"?"<b>Du</b>":x.n}<td>${eur(x.w)}<td>${x.o}</tr>`).join("")}</table></div></div>
+  <div class="c"><b>Dein Vermögen</b>${spark()}</div>
+  <p class="t">Müller jagt Schnäppchen, Schmidt liebt das Seeviertel, Kaiser kauft aggressiv alles. Gute Objekte sind schnell weg. Dein Ruf steigt durch Einigungen, Gewinnverkäufe und gewonnene Auktionen. Er bringt mehr Provision und bessere Verhandlungen.</p>`;
+
+ if(tab=="l")h+=`<div class="c">${S.log.map(x=>`<div class="lg">${x}</div>`).join("")}
+  <p><button onclick="this.dataset.s?(init(),render()):(this.dataset.s=1,this.textContent='Wirklich neu starten?')">Neues Spiel</button></p></div>`;
+
+ $("m").innerHTML=h;
+ try{localStorage.setItem("makler-imperium",JSON.stringify({S,id}))}catch(e){}}
+
+function load(){try{const d=JSON.parse(localStorage.getItem("makler-imperium"));if(d&&d.S&&d.S.ST&&!d.S.over){S=d.S;id=d.id;S.O=S.O||[];S.rep=S.rep||0;return 1}}catch(e){}return 0}
+load()||init();render();
+</script>
+</body>
+</html>
