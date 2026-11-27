@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Makler-Imperium</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700&display=swap">
+<script async src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root{color-scheme:light dark;--bg:#edf0f3;--fg:#16202e;--cd:#fbfcfd;--mu:#566274;--ln:#c9d1dc;--gr:rgba(31,79,163,.06);--ac:#1f4fa3;--on:#fff;--bd:#c0392b;--gd:#1c7c4d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1621;--fg:#e6ebf2;--cd:#152130;--mu:#93a1b5;--ln:#2b3b50;--gr:rgba(106,166,255,.06);--ac:#6aa6ff;--on:#06121f;--bd:#ff8a7a;--gd:#4fd08a}}
@@ -34,6 +35,7 @@ nav button.on{border-bottom-color:var(--ac);font-weight:700}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 14px;border-radius:4px;z-index:20;max-width:90vw}
 .fc{width:100%;max-width:240px;box-sizing:border-box;margin:0 auto 8px;padding:10px 12px;border-radius:12px;color:#fff;background:linear-gradient(160deg,var(--t),#17202e 85%);box-shadow:0 0 0 2px var(--t),0 6px 16px rgba(0,0,0,.35)}.fh{display:flex;justify-content:space-between;align-items:flex-start}.fh b{font-size:34px;line-height:1}.fh small{align-self:center;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--t)}.fi{display:block;width:100%;height:56px;fill:rgba(255,255,255,.85)}.fn{font-weight:700;text-align:center;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 8px;text-align:center;margin-top:6px}.fg b{display:block;font-size:17px}.fg small{display:block;color:rgba(255,255,255,.7);font-size:9px;letter-spacing:.02em}
 [hidden]{display:none!important}
+input{font:inherit;color:var(--fg);background:var(--cd);border:1px solid var(--fg);border-radius:4px;padding:7px 9px;max-width:100%;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -50,7 +52,8 @@ eur=n=>Math.round(n).toLocaleString("de-DE",{style:"currency",currency:"EUR",max
 fm=n=>(n*100).toFixed(2).replace(".",",")+" %",
 rg=(a,b)=>a+Math.random()*(b-a),ri=(a,b)=>Math.floor(rg(a,b+1)),
 $=i=>document.getElementById(i);
-let S,tab="a",id=0,sel=0;
+let S,tab="a",id=0,sel=0,cur=-1,Q=0,MQ=null;
+const MP={on:0,host:0,started:0,me:0,pn:[],cn:[],code:"",st:"",err:"",name:"",up:null,peer:null};
 const val=p=>p.a*S.V[p.v].p*p.f*(p.m||1)*(.5+.5*p.c/100),
 rent=p=>val(p)*.0035,
 nm=p=>p.ty+" in "+S.V[p.v].n,
@@ -58,10 +61,12 @@ own=i=>S.P.find(p=>p.id==i),
 wealth=r=>r.c+r.pr.reduce((s,p)=>s+val(p),0),
 nw=()=>S.cash-S.debt+S.P.reduce((s,p)=>s+val(p),0)+S.L.reduce((s,p)=>s+(p.res||0),0),
 date=()=>MN[S.m%12]+" "+(2027+Math.floor(S.m/12)),
-rank=()=>[{n:"Du",w:nw(),o:S.P.length},...S.R.map(r=>({n:r.n,w:wealth(r),o:r.pr.length}))].sort((a,b)=>b.w-a.w);
+rank=()=>[...S.pl.map((p,i)=>i==cur?{n:"Du",w:nw(),o:S.P.length}:{n:p.name,w:plw(i),o:p.P.length}),...S.R.map(r=>({n:r.n,w:wealth(r),o:r.pr.length}))].sort((a,b)=>b.w-a.w),
+plw=i=>{const p=S.pl[i];return p.cash-p.debt+p.P.reduce((a,q)=>a+val(q),0)+S.L.reduce((a,l)=>a+((l.RS||{})[i]||0),0)};
 
-function log(t){S.log.unshift(date()+": "+t);S.log.length=Math.min(S.log.length,40)}
-function msg(t){const e=$("ty");e.textContent=t;e.hidden=false;clearTimeout(msg.t);msg.t=setTimeout(()=>e.hidden=true,2600)}
+function pushLog(L,t){L.unshift(date()+": "+t);L.length=Math.min(L.length,40)}
+function log(t){(S.bc?S.pl.map(p=>p.log):[S.log]).forEach(L=>pushLog(L,t))}
+function msg(t){if(MQ){MQ.push(t);return}const e=$("ty");e.textContent=t;e.hidden=false;clearTimeout(msg.t);msg.t=setTimeout(()=>e.hidden=true,2600)}
 function go(x){tab=x;render()}
 function gA(){const a=gen();a.au=1;a.exp=S.m+1;a.ask=Math.round(val(a)*rg(.5,.75)/1000)*1000;a.bid=0;a.res=0;return a}
 function neg(i,f){if(S.over)return;const p=S.L.find(x=>x.id==i),t=p.tr||0;
@@ -84,12 +89,12 @@ function oa(i,a){const p=own(i),o=S.O.find(x=>x.pid==i);if(!o)return;
  else S.O=S.O.filter(x=>x!=o);
  render()}
 const DX=[[10,10],[210,10],[10,160],[210,160]],PRE=[['Zinnkrug','Krähen','Glocken','Pergament','Kupfer','Lampen','Ratsherren','Pfeffer','Mondschein','Schwalben'],['Möwen','Schilf','Silberwellen','Leuchtturm','Seerosen','Brisen','Ufer','Sonnen','Kiesel','Reiher'],['Raster','Zukunfts','Glas','Park','Quadrat','Neon','Linden','Funk','Licht','Taubenfeld'],['Anker','Lotsen','Kranz','Salz','Tau','Kai','Seemanns','Wind','Lachmöwen','Teer']],SUF=['gasse','weg','hof','steig','allee','ufer','kai','zeile','ring','pfad'],BY={Wohnung:[1950,2005],Reihenhaus:[1962,2015],Altbau:[1880,1915],Loft:[1900,1935]},FL=['EG','1. OG','2. OG','3. OG','4. OG','Dachgeschoss'],FT=[['Balkon',1.04,[0,1,2,3]],['Garten',1.06,[1,2]],['Seeblick',1.12,[1,3]],['Dachterrasse',1.08,[0,2,3]],['Fußbodenheizung',1.03,[0,1,2,3]],['Aufzug',1.03,[1,2,3]],['Tiefgarage',1.04,[2,3]],['Denkmalschutz',1.1,[0]],['Stuckdecken',1.07,[0]],['Kamin',1.05,[1,2]],['Lärmbelastung',.92,[0,3]],['Hinterhof',.96,[0]]];function mkSt(){const u=new Set(),o=[];for(let v=0;v<4;v++){const[x0,y0]=DX[v],n=()=>{let t;do t=PRE[v][ri(0,9)]+SUF[ri(0,9)];while(u.has(t));u.add(t);return t};o.push({v,n:n(),h:1,y:y0+43},{v,n:n(),h:1,y:y0+87},{v,n:n(),h:0,x:x0+60},{v,n:n(),h:0,x:x0+120})}return o}function place(p){const s=S.ST.filter(t=>t.v==p.v)[ri(0,3)],[x0,y0]=DX[p.v],q={st:s.n,no:ri(1,80),by:ri(BY[p.ty][0],BY[p.ty][1]),fl:p.ty=='Reihenhaus'?'Ganzes Haus':FL[ri(0,5)]};if(s.h){q.x=x0+12+rg(0,156);q.y=s.y}else{q.x=s.x;q.y=y0+12+rg(0,106)}const ok=FT.filter(f=>f[2].includes(p.v)),a=ok[ri(0,ok.length-1)],b=ok[ri(0,ok.length-1)],ft=a==b?[a]:[a,b];q.ft=ft.map(f=>f[0]);q.m=ft.reduce((r,f)=>r*f[1],1);return q}function mapSvg(){let s=`<svg viewBox='0 0 400 300' width='100%' role='img' aria-label='Stadtkarte'>`;DX.forEach(([x,y],v)=>{s+=`<rect x='${x}' y='${y}' width='180' height='130' rx='6' style='fill:${COL[v]};fill-opacity:.1;stroke:${COL[v]}'/><text x='${x+5}' y='${y+12}' font-size='10' font-weight='700' style='fill:${COL[v]}'>${S.V[v].n}</text>`});S.ST.forEach(t=>{const[x,y]=DX[t.v];s+=t.h?`<line x1='${x}' x2='${x+180}' y1='${t.y}' y2='${t.y}' style='stroke:var(--ln);stroke-width:3'/><text x='${x+4}' y='${t.y-3}' font-size='6.5' style='fill:var(--mu)'>${t.n}</text>`:`<line x1='${t.x}' x2='${t.x}' y1='${y}' y2='${y+130}' style='stroke:var(--ln);stroke-width:3'/><text transform='rotate(90 ${t.x+3} ${y+20})' x='${t.x+3}' y='${y+20}' font-size='6.5' style='fill:var(--mu)'>${t.n}</text>`});const mk=(p,f,st,r)=>`<circle cx='${p.x}' cy='${p.y}' r='${r}' style='fill:${f};stroke:${st};stroke-width:${p.id==sel?3:1.5};cursor:pointer' onclick='pick(${p.id})'><title>${p.st} ${p.no}</title></circle>`;S.L.forEach(p=>s+=mk(p,p.au?'var(--bd)':'var(--cd)',p.au?'var(--fg)':COL[p.v],5));S.P.forEach(p=>s+=mk(p,COL[p.v],'var(--fg)',6));S.R.forEach(r=>r.pr.forEach(p=>s+=mk(p,'var(--mu)','var(--cd)',3.5)));return s+'</svg>'}function info(){const o=own(sel),p=S.L.find(x=>x.id==sel)||o||S.R.flatMap(r=>r.pr).find(x=>x.id==sel);if(!p)return `<p class='t'>Klicke auf einen Punkt der Karte, um Details zu sehen.</p>`;const k=p.au?'Auktion':o?'Dein Besitz':S.L.includes(p)?'Angebot':'Konkurrenz',t={Auktion:'u',Angebot:'a','Dein Besitz':'p'}[k];return `<div class='c' style='--vc:${COL[p.v]}'>${fc(p)}<b>${p.st} ${p.no}</b> <span class='t'>${nm(p)}</span><div>${p.ty} von ${p.by}, ${p.fl}, ${p.a} m²</div><div class='t'>${p.ft.join(' · ')}</div><div class='t'>${k}${t?' · '+eur(o?val(p):p.ask):''}</div>${t?`<div class='row'><button class='p' onclick="go('${t}')">Zu ${({u:'Auktionen',a:'Angeboten',p:'Portfolio'})[t]}</button></div>`:''}</div>`}function fc(p){const L=['LAGE','ZUSTAND','FLÄCHE','AUSSTATTUNG','CHARME','RUHE'],RU=[70,85,75,50],HS={Wohnung:`<rect x='14' y='4' width='32' height='38' rx='2'/><path d='M19 9h6v6h-6zm12 0h6v6h-6zm-12 10h6v6h-6zm12 0h6v6h-6z' fill='#1b2535'/>`,Reihenhaus:`<path d='M3 40V22l8-8 8 8v18zM19 40V22l8-8 8 8v18zM35 40V22l8-8 8 8v18z'/>`,Altbau:`<path d='M10 42V20L30 5l20 15v22z'/><rect x='25' y='24' width='10' height='18' fill='#1b2535'/>`,Loft:`<path d='M6 40V14l8 6V12l8 8V10l8 10V8l8 10V40z'/>`},o=own(p.id),kn=o||p.rev,zu=kn?p.c:Math.round(p.c/20)*20,st=[Math.min(99,Math.round(S.V[p.v].p/6000*59+40)),Math.min(99,Math.round(zu)),Math.min(99,Math.round(p.a*.6)),Math.min(99,Math.round(p.m*75)),Math.max(30,Math.min(99,Math.round(99-(p.by-1880)/140*60))),Math.max(20,Math.min(99,RU[p.v]+(p.ft.includes('Lärmbelastung')?-25:0)+(p.ft.includes('Hinterhof')?10:0)))],ov=Math.round(st.reduce((a,b)=>a+b,0)/6),T=ov>=85?['Diamant','#58d6ff']:ov>=75?['Gold','#e0b13a']:ov>=65?['Silber','#9aa6b6']:['Bronze','#b5764a'];return `<div class='fc' style='--t:${T[1]}'><div class='fh'><b>${ov}</b><small>${T[0]}</small></div><svg viewBox='0 0 60 44' class='fi'>${HS[p.ty]}</svg><div class='fn'>${p.st} ${p.no}</div><div class='fg'>${st.map((v,i)=>`<div><b>${v}</b><small>${L[i]}</small></div>`).join('')}</div></div>`}function pick(i){sel=i;render()}function gen(){const t=TY[ri(0,3)],p={id:++id,v:ri(0,3),ty:t[0],f:t[1],a:ri(t[2],t[3]),c:ri(20,90),exp:S.m+3,rev:0,rn:0,ls:0};Object.assign(p,place(p));p.ask=Math.round(val(p)*rg(.82,1.22)/1000)*1000;p.min=Math.round(p.ask*rg(.84,.97));p.tr=0;return p}
-function init(){
- S={m:0,cash:150000,debt:0,rate:.04,heat:1,over:0,
+function init(N){
+ S={m:0,rate:.04,heat:1,bc:0,pl:(N||["Du"]).map(n=>({name:n,cash:150000,debt:0,P:[],O:[],rep:0,H:[150000],log:[],over:0,ready:0})),
   V:[["Altstadt",4200],["Seeviertel",5600],["Neustadt",3300],["Hafen",2400]].map(([n,p])=>({n,p,t:.002})),
-  L:[],P:[],O:[],rep:0,ST:mkSt(),R:RV.map(([n,a,s])=>({n,a,s,c:150000,pr:[]})),H:[150000],log:[]};
- log("Willkommen! Du startest mit 150.000 €. Nach 60 Monaten zählt das größte Vermögen.");
- for(let i=0;i<7;i++)S.L.push(gen());S.L.push(gA())}
+  L:[],ST:mkSt(),R:RV.map(([n,a,s])=>({n,a,s,c:150000,pr:[]}))};
+ cur=-1;bind(myIdx());S.bc=1;log("Willkommen! Du startest mit 150.000 €. Nach 60 Monaten zählt das größte Vermögen.");
+ for(let i=0;i<7;i++)S.L.push(gen());S.L.push(gA());S.bc=0;bind(cur)}
 
 function buy(i){if(S.over)return;const p=S.L.find(x=>x.id==i),c=p.ask*1.05;
  if(S.cash<c)return msg("Nicht genug Bargeld (Preis plus 5 % Nebenkosten). Nimm einen Kredit auf.");
@@ -109,13 +114,17 @@ function event(){const e=ri(0,5),v=S.V[ri(0,3)];
  else if(e==4){v.p*=.95;log("🏗️ Lärmproteste in "+v.n+": Die Preise sinken.")}
  else{S.V.forEach(x=>x.t+=.002);log("🚀 Wirtschaftsboom: Die Nachfrage zieht an.")}}
 
-function finish(t){S.over=1;const pos=rank().findIndex(x=>x.n=="Du")+1;log("🏁 "+t+" Spielende, Platz "+pos+" von 4.")}
+function finish(t){S.over=1;const pos=rank().findIndex(x=>x.n=="Du")+1;log("🏁 "+t+" Spielende, Platz "+pos+" von "+(S.pl.length+S.R.length)+".")}
 
-function tick(){if(S.over)return;S.m++;
+function tick(){if(S.pl.every(p=>p.over))return;
+ const c=cur;if(c>=0)unbind(c);cur=-1;S.bc=1;
+ try{
+ S.m++;
  S.V.forEach(v=>{v.t+=(.002-v.t)*.15+rg(-.002,.002);v.p*=1+v.t+rg(-.008,.008)});
  S.heat=Math.max(.5,Math.min(1.5,1.2-(S.rate-.04)*9+rg(-.1,.1)));
  if(Math.random()<.14)event();
- let rt=0,mt=0;
+ S.pl.forEach((q,k)=>{if(q.over)return;ctx(k,()=>{
+  let rt=0,mt=0;
  S.P.forEach(p=>{
   if(p.rn){if(--p.rn==0){p.c=Math.min(100,p.c+p.g);
    if(Math.random()<.2){const x=Math.round(p.cost*.15);S.cash-=x;p.inv+=x;log("Bauverzug bei "+nm(p)+": Mehrkosten "+eur(x)+".")}
@@ -129,11 +138,18 @@ function tick(){if(S.over)return;S.m++;
  S.O=S.O.filter(o=>o.exp>S.m||(log("Ein Kaufangebot ist verfallen."),false));
  S.P.forEach(p=>{if(!p.ls||p.rn||S.O.some(o=>o.pid==p.id))return;const r=p.ls,pr=Math.min(.9,Math.max(.02,.55*S.heat*Math.exp(-6*(r-.95))));
   if(Math.random()<pr){const a=Math.round(val(p)*r*rg(.86,1)/1000)*1000;S.O.push({pid:p.id,amt:a,exp:S.m+1});log("📩 Kaufangebot für "+nm(p)+": "+eur(a)+". Antworte im Portfolio.")}});
+ })});
  S.L.filter(p=>p.au&&p.exp<=S.m).forEach(p=>{let w={b:p.ask-1};
   S.R.forEach(r=>{if(Math.random()<.7){const b=Math.round(val(p)*rg(.72,1)*(r.s==2?1.08:r.s==0?.92:1)/1000)*1000;if(b>=p.ask&&b>w.b&&b*1.05<=r.c+150000)w={b,r}}});
   S.L=S.L.filter(x=>x!=p);
-  if(p.bid>=p.ask&&p.bid>w.b){p.au=0;p.buy=p.bid;p.inv=p.res;p.b=S.m;S.P.push(p);S.rep=Math.min(100,S.rep+4);log("🔨 Auktion gewonnen: "+nm(p)+" für "+eur(p.bid)+".")}
-  else{S.cash+=p.res||0;if(w.r){w.r.c-=w.b*1.05;p.au=0;p.b=S.m;w.r.pr.push(p);log("🔨 "+w.r.n+" ersteigert "+nm(p)+" für "+eur(w.b)+".")}else log("🔨 Auktion ohne Zuschlag: "+nm(p)+".")}});
+  const BD=p.BD||{},RS=p.RS||{};let bk=-1,bb=p.ask-1;
+  S.pl.forEach((q,k)=>{const x=BD[k]||0;if(!q.over&&x>=p.ask&&x>bb){bb=x;bk=k}});
+  const win=bk>=0&&bb>w.b;
+  S.pl.forEach((q,k)=>{if(!(win&&k==bk))q.cash+=RS[k]||0});
+  if(win){const q=S.pl[bk];p.au=0;p.buy=bb;p.inv=RS[bk];p.b=S.m;q.P.push(p);q.rep=Math.min(100,q.rep+4);
+   S.pl.forEach((x,k)=>pushLog(x.log,k==bk?"🔨 Auktion gewonnen: "+nm(p)+" für "+eur(bb)+".":"🔨 "+q.name+" ersteigert "+nm(p)+" für "+eur(bb)+"."))}
+  else if(w.r){w.r.c-=w.b*1.05;p.au=0;p.b=S.m;w.r.pr.push(p);log("🔨 "+w.r.n+" ersteigert "+nm(p)+" für "+eur(w.b)+".")}
+  else log("🔨 Auktion ohne Zuschlag: "+nm(p)+".")});
  S.L=S.L.filter(p=>p.exp>S.m);
  for(let i=ri(2,4);i>0;i--)S.L.push(gen());
  if(Math.random()<.5)S.L.push(gA());
@@ -144,15 +160,17 @@ function tick(){if(S.over)return;S.m++;
   if(Math.random()<r.a){
    const o=S.L.filter(p=>!p.au&&p.ask*1.05<=r.c+150000).sort((x,y)=>r.s==0?val(y)/y.ask-val(x)/x.ask:r.s==1?(y.v==1)-(x.v==1)||y.ask-x.ask:Math.random()-.5)[0];
    if(o){r.c-=o.ask*1.05;o.b=S.m;r.pr.push(o);S.L=S.L.filter(x=>x!=o);log("🏢 "+r.n+" schnappt sich "+nm(o)+" für "+eur(o.ask)+".")}}});
- S.H.push(nw());
- if(nw()<0)finish("Insolvenz!");else if(S.m>=60)finish("");
+ S.pl.forEach((q,k)=>{if(q.over)return;ctx(k,()=>{S.H.push(nw());if(nw()<0)finish("Insolvenz!")})});
+ if(S.m>=60)S.pl.forEach((q,k)=>{if(!q.over)ctx(k,()=>finish(""))});
+ S.pl.forEach(q=>q.ready=0);
+ }finally{S.bc=0;if(c>=0)bind(c)}
  render()}
 
 function spark(){const h=S.H,mx=Math.max(...h),mn=Math.min(...h);
  return '<svg viewBox="0 0 300 60" preserveAspectRatio="none" width="100%" height="70" role="img" aria-label="Vermögensverlauf"><polyline fill="none" stroke="var(--ac)" stroke-width="2" vector-effect="non-scaling-stroke" points="'
  +h.map((v,i)=>(i/Math.max(1,h.length-1)*300)+","+(58-(v-mn)/(mx-mn||1)*54)).join(" ")+'"/></svg>'}
 
-function render(){
+function render(){if(Q)return;
  const w=nw(),k=rank(),pos=k.findIndex(x=>x.n=="Du")+1;
  $("h").innerHTML=`<div class="bar"><div class="st">
  <div><small>${date()}</small><b>Monat ${S.m} von 60</b></div>
@@ -161,10 +179,10 @@ function render(){
  <div class="w"><small>Vermögen, Platz ${pos}</small><b>${eur(w)}</b></div>
  <div><small>Leitzins</small><b>${fm(S.rate)}</b></div>
  <div><small>Ruf</small><b>${S.rep}/100</b></div></div>
- <button class="p" onclick="tick()" ${S.over?"disabled":""}>Nächster Monat</button></div>`;
- const T=[["a","Angebote ("+S.L.filter(p=>!p.au).length+")"],["u","Auktionen ("+S.L.filter(p=>p.au).length+")"],["p","Portfolio ("+S.P.length+")"],["c","Karte"],["m","Markt"],["k","Konkurrenz"],["l","Verlauf"]];
+ <button class="p" onclick="nextM()" ${S.over||(MP.on&&S.pl[cur]&&S.pl[cur].ready)?"disabled":""}>${nl()}</button></div>`;
+ const T=[["a","Angebote ("+S.L.filter(p=>!p.au).length+")"],["u","Auktionen ("+S.L.filter(p=>p.au).length+")"],["p","Portfolio ("+S.P.length+")"],["c","Karte"],["m","Markt"],["k","Konkurrenz"],["l","Verlauf"],["o","Online"]];
  let h=`<nav>${T.map(([x,l])=>`<button class="${tab==x?"on":""}" onclick="go('${x}')">${l}</button>`).join("")}</nav>`;
- if(S.over)h+=`<div class="c"><b>Spielende!</b> Du belegst Platz ${pos} von 4 mit ${eur(w)}. <button class="p" onclick="init();render()">Neues Spiel</button></div>`;
+ if(S.over)h+=`<div class="c"><b>Spielende!</b> Du belegst Platz ${pos} von ${S.pl.length+S.R.length} mit ${eur(w)}. <button class="p" onclick="newGame()">Neues Spiel</button></div>`;
 
  if(tab=="a")h+=`<div class="g">${S.L.filter(p=>!p.au).map(p=>{const v=val(p),d=(v/p.ask-1)*100,tr=p.tr||0;
   return `<div class="c" style="--vc:${COL[p.v]}">${fc(p)}<b>${nm(p)}</b>
@@ -204,12 +222,98 @@ function render(){
   <p class="t">Müller jagt Schnäppchen, Schmidt liebt das Seeviertel, Kaiser kauft aggressiv alles. Gute Objekte sind schnell weg. Dein Ruf steigt durch Einigungen, Gewinnverkäufe und gewonnene Auktionen. Er bringt mehr Provision und bessere Verhandlungen.</p>`;
 
  if(tab=="l")h+=`<div class="c">${S.log.map(x=>`<div class="lg">${x}</div>`).join("")}
-  <p><button onclick="this.dataset.s?(init(),render()):(this.dataset.s=1,this.textContent='Wirklich neu starten?')">Neues Spiel</button></p></div>`;
+  <p><button onclick="this.dataset.s?newGame():(this.dataset.s=1,this.textContent='Wirklich neu starten?')">Neues Spiel</button></p></div>`;
 
- $("m").innerHTML=h;
- try{localStorage.setItem("makler-imperium",JSON.stringify({S,id}))}catch(e){}}
+ if(tab=="o")h+=online();
+ $("m").innerHTML=h;persist()}
 
-function load(){try{const d=JSON.parse(localStorage.getItem("makler-imperium"));if(d&&d.S&&d.S.ST&&!d.S.over){S=d.S;id=d.id;S.O=S.O||[];S.rep=S.rep||0;return 1}}catch(e){}return 0}
+function load(){try{const d=JSON.parse(localStorage.getItem("makler-imperium"));
+ if(d&&d.S&&d.S.ST&&(d.S.pl?!d.S.pl[0].over:!d.S.over)){S=d.S;id=d.id;
+  if(!S.pl){S.pl=[{name:"Du",cash:S.cash,debt:S.debt,P:S.P,O:S.O||[],rep:S.rep||0,H:S.H,log:S.log,over:0,ready:0}];S.L.forEach(p=>{p.RV={0:p.rev||0};p.BD={0:p.bid||0};p.RS={0:p.res||0}})}
+  S.bc=0;cur=-1;bind(0);return 1}}catch(e){}return 0}
+
+/* Spieler-Kontext: S.cash, S.P usw. gehören immer zum gebundenen Spieler cur */
+function bind(k){if(k<0)return;const p=S.pl[k];cur=k;S.cash=p.cash;S.debt=p.debt;S.P=p.P;S.O=p.O;S.rep=p.rep;S.H=p.H;S.log=p.log;S.over=p.over;
+ S.L.forEach(l=>{l.rev=(l.RV||{})[k]||0;l.bid=(l.BD||{})[k]||0;l.res=(l.RS||{})[k]||0})}
+function unbind(k){if(k<0)return;const p=S.pl[k];p.cash=S.cash;p.debt=S.debt;p.P=S.P;p.O=S.O;p.rep=S.rep;p.H=S.H;p.log=S.log;p.over=S.over;
+ S.L.forEach(l=>{(l.RV=l.RV||{})[k]=l.rev;(l.BD=l.BD||{})[k]=l.bid;(l.RS=l.RS||{})[k]=l.res})}
+function ctx(k,fn){const c=cur,b=S.bc;if(c>=0)unbind(c);bind(k);S.bc=0;try{fn()}finally{unbind(k);cur=-1;S.bc=b;if(c>=0)bind(c)}}
+function snapS(){const c={...S};["cash","debt","P","O","rep","H","log","over","bc"].forEach(f=>delete c[f]);return c}
+function persist(){if(MP.on)return;try{unbind(cur);const j=JSON.stringify({S:snapS(),id});bind(cur);localStorage.setItem("makler-imperium",j)}catch(e){}}
+
+/* Mehrspieler: Host führt das Spiel, Mitspieler senden Aktionen */
+const PFX="makler-imperium-",OK={reno:[0,1,2],sell:[0,.95,1,1.1,1.2],loan:[50000,-50000],neg:[.95,.9,.85],bid:[1,1.25,1.5,1.75],oa:[1,2,3]},
+ORIG={buy,gut,reno,sell,loan,neg,bid,oa},myIdx=()=>MP.on&&!MP.host?MP.me:0,
+esc=t=>String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),
+cl=(n,u=[])=>{const b=String(n||"").replace(/[^\p{L}\p{N} _.-]/gu,"").trim().slice(0,16)||"Spieler";let x=b,i=1;while(u.includes(x)||x=="Du")x=b+" "+(++i);return x},
+gc=()=>Array.from({length:5},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[ri(0,31)]).join(""),
+snd=(c,o)=>{if(c&&c.open)c.send(JSON.stringify(o))};
+function valid(f,a){if(!ORIG.hasOwnProperty(f)||!Array.isArray(a)||!a.every(Number.isFinite))return 0;
+ if(f=="buy"||f=="gut")return a.length==1;if(f=="loan")return a.length==1&&OK.loan.includes(a[0]);return a.length==2&&OK[f].includes(a[1])}
+for(const k in ORIG)window[k]=(...a)=>{if(!MP.on)return ORIG[k](...a);
+ if(!MP.host){if(!MP.started)return msg("Warte auf den Start durch den Host.");return snd(MP.up,{t:"act",k,a})}
+ ORIG[k](...a);bcast()};
+function bcast(){if(!MP.on||!MP.host||!MP.started)return;if(cur>=0)unbind(cur);const j=JSON.stringify(snapS());if(cur>=0)bind(cur);
+ MP.cn.forEach((c,k)=>{if(c&&c.open)c.send('{"t":"s","me":'+k+',"s":'+j+'}')})}
+function hostAct(k,f,a){if(!MP.started||!S.pl[k]||!valid(f,a))return;MQ=[];Q++;
+ try{ctx(k,()=>ORIG[f](...a))}catch(e){MQ.push("Aktion nicht möglich.")}finally{Q--}
+ const m=MQ;MQ=null;if(m.length)snd(MP.cn[k],{t:"m",m});bcast();render()}
+function chk(){const a=S.pl.filter(p=>!p.over&&p.conn!==false);if(a.length&&a.every(p=>p.ready))tickMP()}
+function tickMP(){tick();bcast()}
+function nl(){if(!MP.on||!MP.started)return"Nächster Monat";const a=S.pl.filter(p=>!p.over&&p.conn!==false),n=a.filter(p=>p.ready).length;return(S.pl[cur]&&S.pl[cur].ready?"Warte … (":"Bereit (")+n+"/"+a.length+")"}
+function nextM(){
+ if(MP.on&&!MP.host){if(!MP.started)return msg("Warte auf den Start durch den Host.");return snd(MP.up,{t:"rdy"})}
+ if(!MP.on||!MP.started)return tick();
+ S.pl[0].ready=1;chk();bcast();render()}
+function newGame(){if(MP.on&&!MP.host)return msg("Nur der Host kann ein neues Spiel starten.");
+ const n=MP.on&&MP.started?S.pl.map(p=>p.name):null,cn=MP.on&&MP.started?S.pl.map(p=>p.conn):null;
+ init(n);if(cn)S.pl.forEach((p,i)=>p.conn=cn[i]);bcast();render()}
+function lob(){MP.cn.forEach(c=>snd(c,{t:"lob",n:MP.pn}));render()}
+function mkRoom(){if(typeof Peer=="undefined"){MP.err="Die Mehrspieler-Bibliothek wurde nicht geladen. Bitte die Internetverbindung prüfen.";return render()}
+ MP.name=cl(MP.name);const code=gc(),p=new Peer(PFX+code);Object.assign(MP,{peer:p,err:"",st:"Verbinde …",on:1,host:1,started:0,pn:[MP.name],cn:[null],code:""});
+ p.on("open",()=>{MP.code=code;MP.st="Raum offen";render()});
+ p.on("connection",hostOn);
+ p.on("error",e=>{if(e.type=="unavailable-id"){p.destroy();mkRoom()}else{MP.err="Verbindungsfehler: "+e.type;MP.on=0;MP.host=0;render()}});render()}
+function hostOn(c){
+ c.on("data",raw=>{let m;try{m=JSON.parse(raw)}catch(e){return}
+  if(m.t=="join")return join(c,m.name);
+  const k=MP.cn.indexOf(c);if(k<1||!MP.started)return;
+  if(m.t=="rdy"){const q=S.pl[k];if(q&&!q.over){q.ready=1;chk();bcast();render()}}
+  else if(m.t=="act")hostAct(k,m.k,m.a)});
+ c.on("close",()=>{const k=MP.cn.indexOf(c);if(k<1)return;
+  if(MP.started){MP.cn[k]=null;S.pl[k].conn=false;chk();bcast();render()}else{MP.pn.splice(k,1);MP.cn.splice(k,1);lob()}})}
+function join(c,n){
+ if(!MP.started){const nn=cl(n,MP.pn);MP.pn.push(nn);MP.cn.push(c);snd(c,{t:"ok",me:MP.pn.length-1,n:MP.pn});return lob()}
+ const nn=cl(n),k=S.pl.findIndex((p,i)=>i>0&&p.name==nn&&!MP.cn[i]);
+ if(k<0){snd(c,{t:"err",m:"Das Spiel läuft bereits."});return setTimeout(()=>c.close(),400)}
+ MP.cn[k]=c;S.pl[k].conn=true;snd(c,{t:"ok",me:k});bcast();render()}
+function startMP(){if(!MP.host||MP.started)return;MP.started=1;init(MP.pn.slice());S.pl.forEach((p,i)=>p.conn=i==0||!!MP.cn[i]);bcast();render()}
+function joinRoom(){if(typeof Peer=="undefined"){MP.err="Die Mehrspieler-Bibliothek wurde nicht geladen. Bitte die Internetverbindung prüfen.";return render()}
+ MP.name=cl(MP.name);MP.code=String(MP.code||"").toUpperCase().replace(/[^A-Z0-9]/g,"");Object.assign(MP,{err:"",st:"Verbinde …",on:1,host:0,started:0});
+ const p=MP.peer=new Peer();
+ p.on("open",()=>{const c=MP.up=p.connect(PFX+MP.code,{reliable:true});
+  c.on("open",()=>{snd(c,{t:"join",name:MP.name});MP.st="Verbunden";render()});
+  c.on("data",cdata);c.on("close",()=>{MP.st="Getrennt";msg("Verbindung zum Host getrennt.");render()})});
+ p.on("error",e=>{MP.err=e.type=="peer-unavailable"?"Raum nicht gefunden.":"Verbindungsfehler: "+e.type;if(!MP.started)MP.on=0;try{p.destroy()}catch(x){}render()});render()}
+function cdata(raw){let m;try{m=JSON.parse(raw)}catch(e){return}
+ if(m.t=="s"){S=m.s;S.bc=0;MP.me=m.me;MP.started=1;cur=-1;bind(MP.me);render()}
+ else if(m.t=="ok"){MP.me=m.me;MP.pn=m.n||MP.pn;render()}
+ else if(m.t=="lob"){MP.pn=m.n;render()}
+ else if(m.t=="m")msg(m.m.join(" · "));
+ else if(m.t=="err"){MP.err=m.m;if(!MP.started)MP.on=0;try{MP.peer.destroy()}catch(e){}render()}}
+function online(){const r=x=>`<div class="c">${x}</div>`,er=MP.err?`<p class="dn">${esc(MP.err)}</p>`:"";
+ if(!MP.on)return r(`<b>Mehrspieler</b><p class="t">Ein Spieler erstellt einen Raum (Host), die anderen treten mit dem Code bei. Der Host führt das Spiel und muss die Seite geöffnet lassen. Alle Spieler konkurrieren um das größte Vermögen, zusätzlich spielen die drei Computer-Makler mit. Die Verbindung läuft über WebRTC und den öffentlichen Vermittlungsserver der Bibliothek PeerJS. Technisch sehen die Mitspieler den gesamten Spielstand.</p>
+ <div class="row"><input placeholder="Dein Name" maxlength="16" value="${esc(MP.name||"")}" oninput="MP.name=this.value"></div>
+ <div class="row"><button class="p" onclick="mkRoom()">Raum erstellen</button></div>
+ <div class="row"><input placeholder="Raumcode" maxlength="5" value="${esc(MP.code||"")}" oninput="MP.code=this.value"><button onclick="joinRoom()">Beitreten</button></div>${er}`);
+ const rows=MP.started?S.pl.map((p,i)=>`<tr><td>${esc(p.name)}${i==cur?" (Du)":""}<td>${p.over?"fertig":p.conn===false?"getrennt":p.ready?"bereit":"spielt"}<td>${eur(i==cur?nw():plw(i))}</tr>`).join(""):MP.pn.map(n=>`<tr><td>${esc(n)}</tr>`).join("");
+ return r(`<b>Raum ${esc(MP.code)}</b> <span class="t">${MP.host?"Du bist Host. ":""}${esc(MP.st)}</span>
+ <div class="sc"><table>${MP.started?"<tr><th>Spieler<th>Status<th>Vermögen</tr>":"<tr><th>Spieler</tr>"}${rows}</table></div>
+ ${MP.host?(MP.started?`<div class="row"><button onclick="tickMP()">Monat jetzt beenden</button><button onclick="newGame()">Neues Spiel für alle</button></div>`:`<div class="row"><button class="p" onclick="startMP()">Spiel starten</button></div><p class="t">Gib den Code ${esc(MP.code)} weiter. Wer ihn eingibt, erscheint in der Liste. Der Start ersetzt dein aktuelles Spiel.</p>`):(MP.started?"":`<p class="t">Warte auf den Start durch den Host.</p>`)}
+ ${!MP.host&&MP.st=="Getrennt"?`<div class="row"><button class="p" onclick="joinRoom()">Erneut beitreten</button></div>`:""}${er}
+ <p class="t">Im Mehrspieler beginnt der nächste Monat, sobald alle verbundenen Spieler auf Bereit gedrückt haben.</p>
+ <div class="row"><button onclick="location.reload()">Mehrspieler verlassen (lädt die Seite neu)</button></div>`)}
+
 load()||init();render();
 </script>
 </body>
